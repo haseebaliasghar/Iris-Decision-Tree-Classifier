@@ -1,47 +1,52 @@
 import streamlit as st
-import joblib
+import pickle
 import numpy as np
 
-# 1. Load the trained model
-# The file 'decision_tree_iris.pkl' must be in the same folder as this script
+# Set page configuration
+st.set_page_config(page_title="Iris Classifier", page_icon="🌸")
+
+# --- 1. Load the Saved Model ---
+model_filename = 'decision_tree_iris.pkl'
+
 try:
-    model = joblib.load('decision_tree_iris.pkl')
+    with open(model_filename, 'rb') as f:
+        model = pickle.load(f)
 except FileNotFoundError:
-    st.error("Error: Model file 'decision_tree_iris.pkl' not found. Please upload it to your GitHub repo.")
+    st.error(f"Error: The file '{model_filename}' was not found. Please upload it to your GitHub repository.")
+    st.stop()
+except Exception as e:
+    st.error(f"An error occurred while loading the model: {e}")
     st.stop()
 
-# 2. App Title & Description
-st.title("Iris Species Predictor")
-st.markdown("Enter the measurements of the iris flower to predict its species.")
+# --- 2. App Interface ---
+st.title("🌸 Iris Flower Classifier")
+st.markdown("Enter the flower measurements below to predict the species.")
 
-# 3. Sidebar for Inputs
-st.sidebar.header("Input Features")
-
-def user_input_features():
-    # We set min/max values based on typical Iris dataset ranges
-    sepal_len = st.sidebar.slider('Sepal Length (cm)', 4.0, 8.0, 5.4)
-    sepal_wid = st.sidebar.slider('Sepal Width (cm)', 2.0, 4.5, 3.4)
-    petal_len = st.sidebar.slider('Petal Length (cm)', 1.0, 7.0, 1.3)
-    petal_wid = st.sidebar.slider('Petal Width (cm)', 0.1, 2.5, 0.2)
+# Create a form for the inputs
+with st.form("prediction_form"):
+    st.subheader("Input Features")
     
-    # Store in a numpy array matching the training format
-    data = np.array([[sepal_len, sepal_wid, petal_len, petal_wid]])
-    return data
-
-input_df = user_input_features()
-
-# 4. Display User Input
-st.subheader('User Input parameters')
-st.write(f"**Sepal Length:** {input_df[0][0]} cm")
-st.write(f"**Sepal Width:** {input_df[0][1]} cm")
-st.write(f"**Petal Length:** {input_df[0][2]} cm")
-st.write(f"**Petal Width:** {input_df[0][3]} cm")
-
-# 5. Prediction Logic
-if st.button("Classify"):
-    prediction = model.predict(input_df)
+    col1, col2 = st.columns(2)
     
-    # The model was trained on string labels (e.g., 'Iris-setosa'), 
-    # so we can print the result directly.
-    st.subheader('Prediction')
-    st.success(f"The flower is likely: **{prediction[0]}**")
+    with col1:
+        sepal_len = st.number_input("Sepal Length (cm)", min_value=0.0, max_value=10.0, value=5.1, step=0.1)
+        sepal_wid = st.number_input("Sepal Width (cm)", min_value=0.0, max_value=10.0, value=3.5, step=0.1)
+        
+    with col2:
+        petal_len = st.number_input("Petal Length (cm)", min_value=0.0, max_value=10.0, value=1.4, step=0.1)
+        petal_wid = st.number_input("Petal Width (cm)", min_value=0.0, max_value=10.0, value=0.2, step=0.1)
+        
+    # Submit button
+    submit_button = st.form_submit_button("Predict Species")
+
+# --- 3. Prediction Logic ---
+if submit_button:
+    # Prepare the input array (reshaped for a single sample)
+    input_data = np.array([[sepal_len, sepal_wid, petal_len, petal_wid]])
+    
+    # Make prediction
+    prediction = model.predict(input_data)
+    species = prediction[0]
+    
+    # Display Result
+    st.success(f"The predicted species is: **{species}**")
